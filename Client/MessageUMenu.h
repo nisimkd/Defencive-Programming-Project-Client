@@ -1,10 +1,17 @@
+#include <iostream>
+
 #pragma once
-class Menu
+class MessageUMenu
 {
 private:
+	std::string serverAddress;
+	std::string serverPort;
 	int getInput();
 	void displayMainMenuOptions();
+	void registerUser();
 public:
+	MessageUMenu(std::string, std::string);
+
 	// Constants declarations
 	enum mainMenuOptions
 	{
@@ -17,6 +24,6 @@ public:
 		request_symmetric_key = 151,
 		send_symmetric_key = 152,
 	};
-	Menu();
+	MessageUMenu();
 	int runMainMenu();
 };
