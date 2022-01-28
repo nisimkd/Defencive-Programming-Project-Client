@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="CryptoppWrapper">
+      <UniqueIdentifier>{d31997f1-0a55-496c-b38a-645c0e66698a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -24,6 +27,15 @@
     <ClCompile Include="TcpClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AESWrapper.cpp">
+      <Filter>CryptoppWrapper</Filter>
+    </ClCompile>
+    <ClCompile Include="Base64Wrapper.cpp">
+      <Filter>CryptoppWrapper</Filter>
+    </ClCompile>
+    <ClCompile Include="RSAWrapper.cpp">
+      <Filter>CryptoppWrapper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MessageUMenu.h">
@@ -31,6 +43,15 @@
     </ClInclude>
     <ClInclude Include="TcpClient.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AESWrapper.h">
+      <Filter>CryptoppWrapper</Filter>
+    </ClInclude>
+    <ClInclude Include="Base64Wrapper.h">
+      <Filter>CryptoppWrapper</Filter>
+    </ClInclude>
+    <ClInclude Include="RSAWrapper.h">
+      <Filter>CryptoppWrapper</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

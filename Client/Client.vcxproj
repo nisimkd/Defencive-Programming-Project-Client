@@ -155,12 +155,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AESWrapper.cpp" />
+    <ClCompile Include="Base64Wrapper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MessageUMenu.cpp" />
+    <ClCompile Include="RSAWrapper.cpp" />
     <ClCompile Include="TcpClient.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AESWrapper.h" />
+    <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="MessageUMenu.h" />
+    <ClInclude Include="RSAWrapper.h" />
     <ClInclude Include="TcpClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
