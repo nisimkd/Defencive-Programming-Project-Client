@@ -1,11 +1,14 @@
-#include "TcpClient.h"
 #include "MessageUMenu.h"
 #include <iostream>
 
-MessageUMenu::MessageUMenu(std::string serverAddress, std::string serverPort)
+MessageUMenu::MessageUMenu(const std::string& serverAddress, const std::string& serverPort)
 {
-    this->serverAddress = serverAddress;
-    this->serverPort = serverPort;
+    this->tcpClient = new TcpClient(serverAddress, serverPort);
+}
+
+MessageUMenu::~MessageUMenu()
+{
+    delete tcpClient;
 }
 
 int MessageUMenu::runMainMenu()
@@ -77,14 +80,11 @@ void MessageUMenu::registerUser()
 
 	std::string userName;
 	std::cin >> userName;
-
-    //std::string reply = sendRequestToServer(serverAddress, serverPort, userName);
-    sendRequestToServer(serverAddress, serverPort, userName);
+    
+    tcpClient->sendRequestToServer(userName);
 
     //TODO Check maybe have other option to pause
-    system("pause");
-
-    //std::cout << reply << std::endl;
+    system("pause");    
 }
 
 

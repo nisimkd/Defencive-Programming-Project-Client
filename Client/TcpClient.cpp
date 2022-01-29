@@ -1,30 +1,27 @@
 #include "TcpClient.h"
-#include <cstdlib>
-#include <cstring>
+#include "RSAWrapper.h"
+#include "Base64Wrapper.h"
+
 #include <iostream>
 #include <fstream>
 #include <boost/asio.hpp>
-#include "RSAWrapper.h"
-
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>   
-#include "Base64Wrapper.h"
+#include <boost/uuid/uuid_io.hpp>
 
 using boost::asio::ip::tcp;
 
-/*
-TcpClient::TcpClient(std::string serverAddress, std::string serverPort)
+TcpClient::TcpClient(const std::string& serverAddress, const std::string& serverPort)
 {
-	this->tcpSocket = new tcp::socket(this->ioContext);
-	this->tcpResolver = new tcp::resolver(this->ioContext);
 	this->serverAddress = serverAddress;
 	this->serverPort = serverPort;
 }
-*/
+
+TcpClient::~TcpClient()
+{
+
+}
 
 #pragma pack(push, 1)
-struct clientMessageData
+struct clientMessageHeaderData
 {
 	char clientId[16];
 	uint8_t version;
@@ -36,11 +33,26 @@ struct clientMessageData
 };
 #pragma pack(pop)
 
-union ClientMessage
+union ClientMessageHeader
 {
-	clientMessageData data;
-	char buffer[sizeof(clientMessageData)];
+	clientMessageHeaderData data;
+	char buffer[sizeof(clientMessageHeaderData)];
 };
+
+#pragma pack(push, 1)
+struct clientMessageRegReqData
+{
+	char name[255];
+	char publicKey[RSAPublicWrapper::KEYSIZE];
+};
+#pragma pack(pop)
+
+union ClientMessageRegReq
+{
+	clientMessageRegReqData data;
+	char buffer[sizeof(clientMessageRegReqData)];
+};
+
 
 #pragma pack(push, 1)
 struct serverMessageData
@@ -53,15 +65,12 @@ struct serverMessageData
 };
 #pragma pack(pop)
 
-void initMessage(char message[], int length);
-void saveMyInfoFile(const std::string& userName, const std::string& clientId, const std::string& base64PrivateKey);
-
-void sendRequestToServer(std::string serverAddress, std::string serverPort, std::string messageRequest)
+void TcpClient::sendRequestToServer(const std::string& messageRequest)
 {
 	// TODO Should decide what is the max length of each packets
 	const int max_length = 1024;
 
-	ClientMessage m;
+	ClientMessageHeader m;
 	m.data.version = 1;
 	m.data.code = 1100;
 	m.data.payloadSize = 415;
@@ -74,13 +83,11 @@ void sendRequestToServer(std::string serverAddress, std::string serverPort, std:
 	RSAPrivateWrapper rsapriv;
 
 	// 2. get the public key	
-	rsapriv.getPublicKey(m.data.publicKey, RSAPublicWrapper::KEYSIZE);	// you can get it as a char* buffer
-
-	Base64Wrapper base64Wrapper;
+	rsapriv.getPublicKey(m.data.publicKey, RSAPublicWrapper::KEYSIZE);	// you can get it as a char* buffer	
 
 	std::string base64key = Base64Wrapper::encode(rsapriv.getPrivateKey());
 
-	const USHORT clientMessageSize = sizeof(clientMessageData);
+	const USHORT clientMessageSize = sizeof(clientMessageHeaderData);
 	
 	char buf[max_length];
 
@@ -91,7 +98,7 @@ void sendRequestToServer(std::string serverAddress, std::string serverPort, std:
 		boost::asio::io_context ioContext;
 		tcp::socket s(ioContext);
 		tcp::resolver resolver(ioContext);
-		boost::asio::connect(s, resolver.resolve(serverAddress, serverPort));	
+		boost::asio::connect(s, resolver.resolve(serverAddress, serverPort));
 		boost::asio::write(s, boost::asio::buffer(buf, max_length));
 		char reply[max_length];
 		serverMessageData serverMessage;
@@ -111,13 +118,13 @@ void sendRequestToServer(std::string serverAddress, std::string serverPort, std:
 	}	
 }
 
-void initMessage(char message[], int length)
+void TcpClient::initMessage(char *message, int length)
 {
 	for (int i = 0; i < length; i++)
 		message[i] = '\0';
 }
 
-void saveMyInfoFile(const std::string& userName, const std::string& clientId, const std::string& base64PrivateKey)
+void TcpClient::saveMyInfoFile(const std::string& userName, const std::string& clientId, const std::string& base64PrivateKey)
 {
 	//TODO Move file name const, maybe #define FILE_NAME("my.info")
 

@@ -1,17 +1,17 @@
 #include <iostream>
+#include "TcpClient.h"
 
 #pragma once
 class MessageUMenu
 {
 private:
-	std::string serverAddress;
-	std::string serverPort;
+	TcpClient *tcpClient;
 	int getInput();
 	void displayMainMenuOptions();
 	void registerUser();
 public:
-	MessageUMenu(std::string, std::string);
-
+	MessageUMenu(const std::string&, const std::string&);
+	~MessageUMenu();
 	// Constants declarations
 	enum mainMenuOptions
 	{
@@ -23,7 +23,6 @@ public:
 		send_text_message = 150,
 		request_symmetric_key = 151,
 		send_symmetric_key = 152,
-	};
-	MessageUMenu();
+	};	
 	int runMainMenu();
 };
