@@ -78,9 +78,13 @@ void MessageUMenu::registerUser()
 	std::string userName;
 	std::cin >> userName;
 
-	std::string reply =  sendRequestToServer(serverAddress, serverPort, userName);
+    //std::string reply = sendRequestToServer(serverAddress, serverPort, userName);
+    sendRequestToServer(serverAddress, serverPort, userName);
 
-    std::cout << reply << std::endl;
+    //TODO Check maybe have other option to pause
+    system("pause");
+
+    //std::cout << reply << std::endl;
 }
 
 

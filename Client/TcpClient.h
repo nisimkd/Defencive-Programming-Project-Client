@@ -5,7 +5,7 @@
 
 using boost::asio::ip::tcp;
 
-std::string sendRequestToServer(std::string serverAddress, std::string serverPort, std::string messageRequest);
+void sendRequestToServer(std::string, std::string, std::string);
 #pragma once
 /*
 class TcpClient
