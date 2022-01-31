@@ -3,14 +3,12 @@
 
 class TcpClient
 {
-private:
+private:	
 	std::string serverAddress;
-	std::string serverPort;	
-	void initMessage(char *, int);
-	void saveMyInfoFile(const std::string&, const std::string&, const std::string&);
+	std::string serverPort;		
 public:
 	TcpClient(const std::string&, const std::string&);
 	~TcpClient();
-	void sendRequestToServer(const std::string&);
+	char* sendRequestToServer(const char*);
 };
 
