@@ -1,14 +1,6 @@
 #include "TcpClient.h"
-#include "RSAWrapper.h"
-#include "Base64Wrapper.h"
-
 #include <iostream>
-#include <fstream>
 #include <boost/asio.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
-//TODO Remove unused includes
-
 using boost::asio::ip::tcp;
 
 TcpClient::TcpClient(const std::string& serverAddress, const std::string& serverPort)
@@ -24,9 +16,6 @@ TcpClient::~TcpClient()
 
 char* TcpClient::sendRequestToServer(const char* request)
 {
-	//TODO Put it in better place
-	const int BUFFER_SIZE = 1024;
-
 	try
 	{
 		//TODO Move socket to class member

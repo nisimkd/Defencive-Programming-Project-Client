@@ -1,0 +1,88 @@
+#include "ConsoleUI.h"
+#include <iostream>
+#include "RSAWrapper.h"
+#include "Base64Wrapper.h"
+#include <fstream>
+
+ConsoleUI::ConsoleUI(const std::string& serverAddress, const std::string& serverPort)
+{
+    this->userManager = new UserManager(serverAddress, serverPort);
+}
+
+ConsoleUI::~ConsoleUI()
+{
+}
+
+int ConsoleUI::run()
+{
+    ConsoleUI::mainMenuOptions userSelection;
+
+    do
+    {
+        system("cls");
+
+        ConsoleUI::displayMainMenuOptions();
+
+        userSelection = (ConsoleUI::mainMenuOptions)ConsoleUI::getInput();
+
+        switch (userSelection)
+        {
+        case ConsoleUI::mainMenuOptions::user_register:
+        {
+            system("cls");
+
+            std::cout << "Please enter your user name: ";
+
+            std::string userName;
+            std::cin >> userName;
+
+            std::string registerUserResult = userManager->registerUser(userName);
+
+            std::cout << registerUserResult << std::endl;      
+
+            break;
+        }
+        case ConsoleUI::mainMenuOptions::request_clients_list:
+            break;
+        case ConsoleUI::mainMenuOptions::request_public_key:
+            break;
+        case ConsoleUI::mainMenuOptions::request_waiting_messages:
+            break;
+        case ConsoleUI::mainMenuOptions::send_text_message:
+            break;
+        case ConsoleUI::mainMenuOptions::request_symmetric_key:
+            break;
+        case ConsoleUI::mainMenuOptions::send_symmetric_key:
+            break;
+        case ConsoleUI::mainMenuOptions::exit:
+            break;
+        default:
+            continue;
+            break;
+        }
+
+        system("pause");
+    } while (userSelection != ConsoleUI::mainMenuOptions::exit);
+
+    return EXIT_SUCCESS;
+}
+
+int ConsoleUI::getInput()
+{
+    int choise;
+    std::cin >> choise;
+    return choise;
+}
+
+void ConsoleUI::displayMainMenuOptions()
+{
+    std::cout << "MessageU client at your service." << std::endl << std::endl;
+    std::cout << "110) Register" << std::endl;
+    std::cout << "120) Request for clients list" << std::endl;
+    std::cout << "130) Request for public key" << std::endl;
+    std::cout << "140) Request for waiting messages" << std::endl;
+    std::cout << "150) Send a text message" << std::endl;
+    std::cout << "151) Send a request for symmetric key" << std::endl;
+    std::cout << "152) Send your symmetric key" << std::endl;
+    std::cout << "0) Exit client" << std::endl;
+}

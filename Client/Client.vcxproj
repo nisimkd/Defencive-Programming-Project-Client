@@ -157,17 +157,21 @@
   <ItemGroup>
     <ClCompile Include="AESWrapper.cpp" />
     <ClCompile Include="Base64Wrapper.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MessageUMenu.cpp" />
+    <ClCompile Include="ConsoleUI.cpp" />
     <ClCompile Include="RSAWrapper.cpp" />
     <ClCompile Include="TcpClient.cpp" />
+    <ClCompile Include="UserManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AESWrapper.h" />
     <ClInclude Include="Base64Wrapper.h" />
-    <ClInclude Include="MessageUMenu.h" />
+    <ClInclude Include="ConsoleUI.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="RSAWrapper.h" />
     <ClInclude Include="TcpClient.h" />
+    <ClInclude Include="UserManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

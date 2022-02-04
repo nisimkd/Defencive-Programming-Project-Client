@@ -1,17 +1,11 @@
 #include <iostream>
 #include "TcpClient.h"
+#include "UserManager.h"
 
 #pragma once
-class MessageUMenu
+class ConsoleUI
 {
 private:
-	TcpClient *tcpClient;
-	int getInput();
-	void displayMainMenuOptions();
-	void registerUser();
-public:
-	MessageUMenu(const std::string&, const std::string&);
-	~MessageUMenu();
 	// Constants declarations
 	enum mainMenuOptions
 	{
@@ -23,6 +17,14 @@ public:
 		send_text_message = 150,
 		request_symmetric_key = 151,
 		send_symmetric_key = 152,
-	};	
-	int runMainMenu();
+	};
+
+	UserManager* userManager;
+
+	int getInput();
+	void displayMainMenuOptions();
+public:
+	ConsoleUI(const std::string&, const std::string&);
+	~ConsoleUI();
+	int run();
 };

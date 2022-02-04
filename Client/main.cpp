@@ -2,14 +2,19 @@
 #include <fstream>
 #include <vector>
 #include <boost/algorithm/string.hpp>
-#include "MessageUMenu.h"
+#include "ConsoleUI.h"
+#include "Logger.h"
 #include <string>
 
 using namespace std;
 
 int main()
 {
+    //TODO Move to other place
+    const string LOG_FILE_NAME = "Client.log";
     const string SERVER_INFO_FILE_NAME = "server.info";
+
+    Logger::initLogger(LOG_FILE_NAME);    
 
     string serverAddress;
     string serverPort;
@@ -32,7 +37,7 @@ int main()
         serverPort = serverInfoVec[1];
     }
 
-    MessageUMenu menu = MessageUMenu(serverAddress, serverPort);
+    ConsoleUI consoleUI = ConsoleUI(serverAddress, serverPort);
 
-    return menu.runMainMenu();
+    return consoleUI.run();
 }
