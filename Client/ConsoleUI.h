@@ -7,7 +7,7 @@ class ConsoleUI
 {
 private:
 	// Constants declarations
-	enum mainMenuOptions
+	enum class mainMenuOptions
 	{
 		exit = 0,
 		user_register = 110,

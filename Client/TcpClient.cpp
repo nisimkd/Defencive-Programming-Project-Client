@@ -1,6 +1,7 @@
 #include "TcpClient.h"
 #include <iostream>
 #include <boost/asio.hpp>
+#include "Logger.h"
 using boost::asio::ip::tcp;
 
 TcpClient::TcpClient(const std::string& serverAddress, const std::string& serverPort)
@@ -39,7 +40,7 @@ char* TcpClient::sendRequestToServer(const char* request)
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << "Exception: " << e.what() << "\n";
+		Logger::error("Exception: " + std::string(e.what()) + "\n");
 		return NULL;
 	}	
 }

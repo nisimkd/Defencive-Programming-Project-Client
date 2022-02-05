@@ -3,20 +3,23 @@
 #include <string>
 #include "RSAWrapper.h"
 #include "TcpClient.h"
+#include "Contact.h"
 
 class UserManager
 {
 private:
 	#pragma region Constants
 
-	const std::string FILE_NAME = "my.info";
+	const std::string INFO_FILE_NAME = "my.info";
 
 	#define VERSION 1;
 	#define USER_NAME_SIZE 255
+	#define EMPTY_PAYLOAD_SIZE 0
 
 	#pragma endregion
 
-	#pragma region Messages structs
+	#pragma region Client request structs
+
 
 	#pragma pack(push, 1)
 	struct ClientRequestHeader
@@ -28,6 +31,7 @@ private:
 	};
 	#pragma pack(pop)
 
+
 	#pragma pack(push, 1)
 	struct ClientRegisterUserRequestPayload
 	{
@@ -35,7 +39,6 @@ private:
 		char publicKey[RSAPublicWrapper::KEYSIZE];
 	};
 	#pragma pack(pop)
-
 	#pragma pack(push, 1)
 	struct clientRegisterUserRequestData
 	{
@@ -43,13 +46,43 @@ private:
 		ClientRegisterUserRequestPayload payload;
 	};
 	#pragma pack(pop)
-
 	union ClientRegisterRequest
 	{
 		clientRegisterUserRequestData data;
 		char buffer[sizeof(clientRegisterUserRequestData)];
 	};
 
+
+	#pragma pack(push, 1)
+	struct clientsListRequestData
+	{
+		ClientRequestHeader header;		
+	};
+	#pragma pack(pop)
+	union ClientsListRequest
+	{
+		clientsListRequestData data;
+		char buffer[sizeof(clientsListRequestData)];
+	};
+
+
+	#pragma pack(push, 1)
+	struct requestPublicKeyRequestData
+	{
+		ClientRequestHeader header;
+		boost::uuids::uuid requestedClientId;
+	};
+	#pragma pack(pop)
+	union RequestPublicKeyRequest
+	{
+		requestPublicKeyRequestData data;
+		char buffer[sizeof(requestPublicKeyRequestData)];
+	};
+
+	#pragma endregion
+
+
+	#pragma region Server responses structs
 
 	#pragma pack(push, 1)
 	struct ServerResponseHeader
@@ -68,11 +101,28 @@ private:
 	};
 	#pragma pack(pop)
 
+	#pragma pack(push, 1)
+	struct ServerContactData
+	{
+		boost::uuids::uuid clientId;
+		char name[USER_NAME_SIZE];
+	};	
+	#pragma pack(pop)
+
+	#pragma pack(push, 1)
+	struct PublicKeyRequestResponse
+	{
+		ServerResponseHeader serverResponseHeader;
+		boost::uuids::uuid clientId;
+		char publicKey[RSAPublicWrapper::KEYSIZE];
+	};
+	#pragma pack(pop)
+
 	#pragma endregion
 
 	#pragma region Enums
 
-	enum requestCode
+	enum requestCodeType
 	{
 		user_register = 110,
 		request_clients_list = 120,
@@ -83,6 +133,16 @@ private:
 		send_symmetric_key = 152,
 	};
 
+	enum serverResponseCodeType
+	{
+		register_user_success = 2100,
+		get_users_list = 2101,
+		get_public_key = 2102,
+		message_to_user_sent = 2103,
+		get_waiting_messages = 2104,
+		server_error = 9000,
+	};
+
 	#pragma endregion
 
 	#pragma region Members
@@ -91,16 +151,20 @@ private:
 	std::string userName;
 	boost::uuids::uuid clientId;
 	RSAPrivateWrapper* rsaPrivateWrapper;
-	uint8_t version;
+	std::map<boost::uuids::uuid, Contact> contacts;
 
 	#pragma endregion
 
 	#pragma region Methods
 
-	void createClientUserRequestBuffer(char*);
+	void createRegisterUserRequestBuffer(char*);
+	void createClientsListRequestBuffer(char*);
+	void createPublicKeyRequestBuffer(char*, boost::uuids::uuid);
 	bool isMyInfoFileExists();
 	std::string saveMyInfoFile(const std::string&, const std::string&, const std::string&);
-	void initMessage(char* message, int length);
+	void initMessage(char*, int);
+	std::string addContactsFromServerToList(char*, uint32_t);
+	bool getClientIdByUserName(const std::string& userName, boost::uuids::uuid&);
 
 	#pragma endregion
 
@@ -115,6 +179,8 @@ public:
 	#pragma region Methods
 
 	std::string registerUser(const std::string&);
+	std::string requestClientsListFromServer();
+	std::string requestPublicKey(const std::string&);
 
 	#pragma endregion
 

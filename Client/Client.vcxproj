@@ -162,6 +162,7 @@
     <ClCompile Include="ConsoleUI.cpp" />
     <ClCompile Include="RSAWrapper.cpp" />
     <ClCompile Include="TcpClient.cpp" />
+    <ClCompile Include="Contact.cpp" />
     <ClCompile Include="UserManager.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +172,7 @@
     <ClInclude Include="Logger.h" />
     <ClInclude Include="RSAWrapper.h" />
     <ClInclude Include="TcpClient.h" />
+    <ClInclude Include="Contact.h" />
     <ClInclude Include="UserManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

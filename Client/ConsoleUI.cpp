@@ -11,6 +11,7 @@ ConsoleUI::ConsoleUI(const std::string& serverAddress, const std::string& server
 
 ConsoleUI::~ConsoleUI()
 {
+    delete userManager;
 }
 
 int ConsoleUI::run()
@@ -24,7 +25,9 @@ int ConsoleUI::run()
         ConsoleUI::displayMainMenuOptions();
 
         userSelection = (ConsoleUI::mainMenuOptions)ConsoleUI::getInput();
-
+        
+        //TODO Handle too large user name
+        //TODO Handle user selection error
         switch (userSelection)
         {
         case ConsoleUI::mainMenuOptions::user_register:
@@ -43,9 +46,27 @@ int ConsoleUI::run()
             break;
         }
         case ConsoleUI::mainMenuOptions::request_clients_list:
+        {
+            system("cls");
+            std::string clientsListRequestResult = userManager->requestClientsListFromServer();
+            std::cout << clientsListRequestResult << std::endl;
             break;
+        }
         case ConsoleUI::mainMenuOptions::request_public_key:
+        {
+            system("cls");
+
+            std::cout << "Please enter the user name of the requested public key: ";
+
+            std::string requestedPublicKeyUserName;
+            std::cin >> requestedPublicKeyUserName;
+
+            std::string requestPublicKeyResult = userManager->requestPublicKey(requestedPublicKeyUserName);
+
+            std::cout << requestPublicKeyResult << std::endl;
+
             break;
+        }
         case ConsoleUI::mainMenuOptions::request_waiting_messages:
             break;
         case ConsoleUI::mainMenuOptions::send_text_message:

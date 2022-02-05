@@ -13,7 +13,7 @@ void Logger::initLogger(const std::string& logFileName)
 
     boost::log::add_file_log(boost::log::keywords::file_name = logFileName, boost::log::keywords::auto_flush = true, boost::log::keywords::format = "[%TimeStamp%] [%Severity%] %Message%");
 
-    boost::log::core::get()->set_filter(boost::log::trivial::severity >= boost::log::trivial::info);    
+    boost::log::core::get()->set_filter(boost::log::trivial::severity >= boost::log::trivial::debug);    
 
     boost::log::add_common_attributes();    
 }
