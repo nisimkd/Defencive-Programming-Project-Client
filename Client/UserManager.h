@@ -4,6 +4,7 @@
 #include "RSAWrapper.h"
 #include "TcpClient.h"
 #include "Contact.h"
+#include "Message.h"
 
 class UserManager
 {
@@ -17,6 +18,7 @@ private:
 	#define EMPTY_PAYLOAD_SIZE 0
 
 	#pragma endregion
+
 
 	#pragma region Client request structs
 
@@ -54,15 +56,15 @@ private:
 
 
 	#pragma pack(push, 1)
-	struct clientsListRequestData
+	struct requestNoPayloadData
 	{
 		ClientRequestHeader header;		
 	};
 	#pragma pack(pop)
-	union ClientsListRequest
+	union RequestNoPayload
 	{
-		clientsListRequestData data;
-		char buffer[sizeof(clientsListRequestData)];
+		requestNoPayloadData data;
+		char buffer[sizeof(requestNoPayloadData)];
 	};
 
 
@@ -118,19 +120,28 @@ private:
 	};
 	#pragma pack(pop)
 
+	#pragma pack(push, 1)
+	//Todo Improve the logic with this struct
+	struct MessageResponseHeader
+	{
+		boost::uuids::uuid clientId;
+		uint32_t messageId;
+		uint8_t messageType;
+		uint32_t messageSize;
+	};
+	#pragma pack(pop)
+
 	#pragma endregion
 
 	#pragma region Enums
 
 	enum requestCodeType
 	{
-		user_register = 110,
-		request_clients_list = 120,
-		request_public_key = 130,
-		request_waiting_messages = 140,
-		send_text_message = 150,
-		request_symmetric_key = 151,
-		send_symmetric_key = 152,
+		user_register = 1100,
+		request_clients_list = 1101,
+		request_public_key = 1102,		
+		send_text_message = 1103,
+		request_waiting_messages = 1104,
 	};
 
 	enum serverResponseCodeType
@@ -141,6 +152,13 @@ private:
 		message_to_user_sent = 2103,
 		get_waiting_messages = 2104,
 		server_error = 9000,
+	};
+
+	enum class messageType
+	{
+		request_symmetric_key = 1,
+		send_symmetric_key = 2,
+		send_text_message = 3
 	};
 
 	#pragma endregion
@@ -158,13 +176,15 @@ private:
 	#pragma region Methods
 
 	void createRegisterUserRequestBuffer(char*);
-	void createClientsListRequestBuffer(char*);
+	void createNoPayloadRequestBuffer(char*, requestCodeType);
 	void createPublicKeyRequestBuffer(char*, boost::uuids::uuid);
 	bool isMyInfoFileExists();
 	std::string saveMyInfoFile(const std::string&, const std::string&, const std::string&);
 	void initMessage(char*, int);
 	std::string addContactsFromServerToList(char*, uint32_t);
-	bool getClientIdByUserName(const std::string& userName, boost::uuids::uuid&);
+	std::string createWaitingMessagesStr(char*, uint32_t);
+	std::string handleMessage(Message);
+	bool getClientIdByUserName(const std::string&, boost::uuids::uuid&);
 
 	#pragma endregion
 
@@ -181,6 +201,7 @@ public:
 	std::string registerUser(const std::string&);
 	std::string requestClientsListFromServer();
 	std::string requestPublicKey(const std::string&);
+	std::string requestWaitingMessages();
 
 	#pragma endregion
 

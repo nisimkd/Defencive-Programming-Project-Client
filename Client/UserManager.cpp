@@ -14,6 +14,7 @@ UserManager::UserManager(const std::string& serverAddress, const std::string& se
     this->contacts = std::map<boost::uuids::uuid, Contact>();
 }
 
+//TODO Delete contacts memory
 UserManager::~UserManager()
 {
     delete rsaPrivateWrapper;
@@ -84,7 +85,7 @@ std::string UserManager::requestClientsListFromServer()
 
     // Create request buffer
     char requestBuffer[BUFFER_SIZE];
-    createClientsListRequestBuffer(requestBuffer);
+    createNoPayloadRequestBuffer(requestBuffer, requestCodeType::request_clients_list);
     
     char* response = tcpClient->sendRequestToServer(requestBuffer);
     if (response == NULL)
@@ -160,6 +161,43 @@ std::string UserManager::requestPublicKey(const std::string& userName)
     return requestPublicKeyResult;
 }
 
+std::string UserManager::requestWaitingMessages()
+{
+    std::string waitingMessagesStr;
+
+    // Create request buffer
+    char requestBuffer[BUFFER_SIZE];
+    createNoPayloadRequestBuffer(requestBuffer, requestCodeType::request_waiting_messages);
+
+    char* response = tcpClient->sendRequestToServer(requestBuffer);
+    if (response == NULL)
+    {
+        waitingMessagesStr = "Failed access to the server, failed to get clients list, please try again later!\n";
+    }
+    else
+    {
+        ServerResponseHeader responseHeader;
+        memcpy(&responseHeader, response, sizeof(ServerResponseHeader));
+
+        if (responseHeader.code == serverResponseCodeType::server_error)
+        {
+            waitingMessagesStr = "Server responded with an error, failed to get clients list, please try again\n";
+        }
+        else if (responseHeader.code == serverResponseCodeType::get_waiting_messages)
+        {            
+            waitingMessagesStr = createWaitingMessagesStr(response + sizeof(ServerResponseHeader), responseHeader.payloadSize);
+        }
+        else
+        {
+            waitingMessagesStr = "Unknown server error, failed to get clients list, please try again\n";
+        }
+
+        delete response;
+    }
+
+    return waitingMessagesStr;
+}
+
 #pragma endregion
 
 #pragma region Private Methods
@@ -179,14 +217,14 @@ void UserManager::createRegisterUserRequestBuffer(char *clientRegisterRequseBuff
     memcpy(clientRegisterRequseBuffer, clientRegisterRequest.buffer, sizeof(ClientRegisterRequest));
 }
 
-void UserManager::createClientsListRequestBuffer(char* clientsListRequestBuffer)
+void UserManager::createNoPayloadRequestBuffer(char* noPayloadRequestBuffer, requestCodeType requestCode)
 {
-    ClientsListRequest clientsListRequest;
+    RequestNoPayload clientsListRequest;
     clientsListRequest.data.header.version = VERSION;
-    clientsListRequest.data.header.code = UserManager::requestCodeType::request_clients_list;
+    clientsListRequest.data.header.code = requestCode;
     clientsListRequest.data.header.payloadSize = EMPTY_PAYLOAD_SIZE;
 
-    memcpy(clientsListRequestBuffer, clientsListRequest.buffer, sizeof(ClientsListRequest));
+    memcpy(noPayloadRequestBuffer, clientsListRequest.buffer, sizeof(RequestNoPayload));
 }
 
 void UserManager::createPublicKeyRequestBuffer(char* publicKeyRequestBuffer, boost::uuids::uuid requestedClientId)
@@ -265,6 +303,83 @@ std::string UserManager::addContactsFromServerToList(char* responseBuffer, uint3
 
     delete[] serverContactsData;
     return contactsStr;
+}
+
+std::string UserManager::createWaitingMessagesStr(char* payloadBuffer, uint32_t payloadSize)
+{
+    std::string waitingMessagesStr = std::string();    
+    if (payloadSize == 0)
+        return waitingMessagesStr;
+
+    uint32_t payloadSizeCounter = payloadSize;
+    char* currentMessage = payloadBuffer;
+    
+    while (payloadSizeCounter > 0)
+    {
+        MessageResponseHeader messageResponseHeader;
+        memcpy(&messageResponseHeader, currentMessage, sizeof(MessageResponseHeader));
+        std::string messageContent = std::string(currentMessage + sizeof(MessageResponseHeader), messageResponseHeader.messageSize);
+        Message newMessage = Message(messageResponseHeader.clientId, messageResponseHeader.messageType, messageContent);
+        waitingMessagesStr += handleMessage(newMessage);
+
+        unsigned long long currentMessageSize = sizeof(MessageResponseHeader) + messageResponseHeader.messageSize;
+        payloadSizeCounter -= currentMessageSize;
+        currentMessage += currentMessageSize;
+    }
+
+    return waitingMessagesStr;
+}
+
+std::string UserManager::handleMessage(Message message)
+{
+    std::string messageStr = std::string();
+    messageStr += "From: ";
+    auto contactIterator = contacts.find(message.getClientId());
+    if (contactIterator == contacts.end())
+    {
+        messageStr += "Unkown user name\n";
+        messageStr += "Can't handle this message\n";
+        return messageStr;
+    }
+    else
+    {
+        messageStr += contactIterator->second.userName + '\n';
+    }
+
+    messageStr += "Content:\n";
+    switch ((messageType)message.getMessageType())
+    {
+    case messageType::request_symmetric_key:
+    {
+        messageStr += "Request for symmetric key\n";
+        break;
+    }
+    case messageType::send_symmetric_key:
+    {
+        unsigned char aesKey[AESWrapper::DEFAULT_KEYLENGTH];
+        memcpy(aesKey, &rsaPrivateWrapper->decrypt(message.getMessageContent()), AESWrapper::DEFAULT_KEYLENGTH);
+        contactIterator->second.setSymmetricKey(aesKey);
+        messageStr += "Symmetric key received\n";
+        break;
+    }
+    case messageType::send_text_message:
+    {
+        if (!contactIterator->second.hasSymmetricKey())
+        {
+            messageStr += "Can't decrypt message\n";
+        }
+        else
+        {
+            AESWrapper aes(contactIterator->second.getSymmetricKey(), AESWrapper::DEFAULT_KEYLENGTH);
+            std::string messageContentDecrypt = aes.decrypt(message.getMessageContent().c_str(), message.getMessageContent().size());
+            messageStr += messageContentDecrypt + '\n';
+        }
+        break;
+    }
+    }
+
+    messageStr += "-----<EOM>-----\n";
+    return messageStr;
 }
 
 bool UserManager::getClientIdByUserName(const std::string& userName, boost::uuids::uuid &clientId)
