@@ -68,13 +68,57 @@ int ConsoleUI::run()
             break;
         }
         case ConsoleUI::mainMenuOptions::request_waiting_messages:
+        {
+            system("cls");
+
+            std::string requestWaitingMessagesResult = userManager->requestWaitingMessages();
+            std::cout << requestWaitingMessagesResult << std::endl;
             break;
+        }            
         case ConsoleUI::mainMenuOptions::send_text_message:
+        {
+            system("cls");
+
+            std::cout << "Please enter the user name of the user you want send the message: ";
+            std::string userName;
+            std::cin >> userName;
+
+            std::cout << "Please enter the message: ";
+            std::string message;
+            std::cin >> message;
+
+
+            std::string sendMessagesResult = userManager->sendMessage(userName, message);
+            std::cout << sendMessagesResult << std::endl;
             break;
+        }            
         case ConsoleUI::mainMenuOptions::request_symmetric_key:
+        {
+            system("cls");
+
+            std::cout << "Please enter the user name of the user you want send the symmetric key resquest: ";
+            std::string userName;
+            std::cin >> userName;
+
+
+            std::string requestSymmetricKeyResult = userManager->requestSymmetricKey(userName);
+            std::cout << requestSymmetricKeyResult << std::endl;
+            break;
+        }
             break;
         case ConsoleUI::mainMenuOptions::send_symmetric_key:
+        {
+            system("cls");
+
+            std::cout << "Please enter the user name of the user you want send the symmetric key: ";
+            std::string userName;
+            std::cin >> userName;
+
+
+            std::string sendSymmetricKeyResult = userManager->sendSymmetricKey(userName);
+            std::cout << sendSymmetricKeyResult << std::endl;
             break;
+        }
         case ConsoleUI::mainMenuOptions::exit:
             break;
         default:

@@ -81,6 +81,22 @@ private:
 		char buffer[sizeof(requestPublicKeyRequestData)];
 	};
 
+	#pragma pack(push, 1)	
+	struct sendMessageWithoutContentData
+	{
+		ClientRequestHeader header;
+		boost::uuids::uuid clientId;		
+		uint8_t messageType;
+		uint32_t messageSize;
+	};
+	#pragma pack(pop)
+
+	union SendMessageWithoutContent
+	{		
+		sendMessageWithoutContentData data;
+		char buffer[sizeof(sendMessageWithoutContentData)];
+	};
+
 	#pragma endregion
 
 
@@ -120,8 +136,7 @@ private:
 	};
 	#pragma pack(pop)
 
-	#pragma pack(push, 1)
-	//Todo Improve the logic with this struct
+	#pragma pack(push, 1)	
 	struct MessageResponseHeader
 	{
 		boost::uuids::uuid clientId;
@@ -202,6 +217,12 @@ public:
 	std::string requestClientsListFromServer();
 	std::string requestPublicKey(const std::string&);
 	std::string requestWaitingMessages();
+
+	std::string sendMessage(const std::string&, const std::string&);
+
+	std::string requestSymmetricKey(const std::string&);
+
+	std::string sendSymmetricKey(const std::string&);
 
 	#pragma endregion
 
