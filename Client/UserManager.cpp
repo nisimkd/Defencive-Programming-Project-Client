@@ -2,6 +2,7 @@
 #include <fstream>
 #include "Base64Wrapper.h"
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/lexical_cast.hpp>
 #include "Logger.h"
 
 #pragma region Constructors and Destructors
@@ -11,6 +12,15 @@ UserManager::UserManager(const std::string& serverAddress, const std::string& se
     this->tcpClient = new TcpClient(serverAddress, serverPort);
     this->clientId = boost::uuids::uuid();
     this->rsaPrivateWrapper = new RSAPrivateWrapper;    
+    this->contacts = std::map<boost::uuids::uuid, Contact>();
+}
+
+UserManager::UserManager(const std::string& serverAddress, const std::string& serverPort, const std::string& userName, const std::string& clientId, const std::string& privateKey)
+{
+    this->tcpClient = new TcpClient(serverAddress, serverPort);
+    this->userName = userName;
+    this->clientId = boost::lexical_cast<boost::uuids::uuid>(clientId);
+    this->rsaPrivateWrapper = new RSAPrivateWrapper(Base64Wrapper::decode(privateKey));
     this->contacts = std::map<boost::uuids::uuid, Contact>();
 }
 
@@ -37,7 +47,7 @@ std::string UserManager::registerUser(const std::string& userName)
     // Create client request header and payload
 
     char requestBuffer[BUFFER_SIZE];    
-    createRegisterUserRequestBuffer(requestBuffer);
+    createRegisterUserRequestBuffer(requestBuffer, userName);
 
     // Send client register user request to the server, get response and handle it according to the data
     char* response = tcpClient->sendRequestToServer(requestBuffer);
@@ -66,7 +76,7 @@ std::string UserManager::registerUser(const std::string& userName)
             std::string base64PrivateKeyStr = Base64Wrapper::encode(rsaPrivateWrapper->getPrivateKey());
             registerUserResultStr += saveMyInfoFile(userName, to_string(serverRegisterUserResponse.clientId), base64PrivateKeyStr);
             this->userName = userName;
-            this->clientId = serverRegisterUserResponse.clientId;
+            this->clientId = serverRegisterUserResponse.clientId;            
         }
         else
         {
@@ -148,7 +158,7 @@ std::string UserManager::requestPublicKey(const std::string& userName)
             //TODO Handle client Id error
             auto requestedContact = contacts.find(publicKeyRequestResponse.clientId);
             memcpy(requestedContact->second.publicKey, publicKeyRequestResponse.publicKey, RSAPublicWrapper::KEYSIZE);
-            requestedContact->second.hasPublicKey = true;
+            requestedContact->second.hasPublicKey = true;            
             requestPublicKeyResult = "Get public key of user " + userName + " success\n";
         }
         else
@@ -224,7 +234,7 @@ std::string UserManager::sendMessage(const std::string& userName, const std::str
     sendMessageWithoutContent.data.messageSize = (uint32_t)cipherMessage.size();
     sendMessageWithoutContent.data.messageType = (uint8_t)messageType::send_text_message;    
 
-    char *requestBuffer = new char[sizeof(SendMessageWithoutContent) + (uint32_t)cipherMessage.size()];
+    char requestBuffer[BUFFER_SIZE];
     memcpy(requestBuffer, &sendMessageWithoutContent, sizeof(SendMessageWithoutContent));
     strcpy_s(requestBuffer + sizeof(SendMessageWithoutContent), cipherMessage.size(), cipherMessage.c_str());    
 
@@ -281,7 +291,7 @@ std::string UserManager::requestSymmetricKey(const std::string& userName)
     sendMessageWithoutContent.data.messageSize = 0;
     sendMessageWithoutContent.data.messageType = (uint8_t)messageType::request_symmetric_key;
 
-    char requestBuffer[sizeof(SendMessageWithoutContent)];
+    char requestBuffer[BUFFER_SIZE];
     memcpy(requestBuffer, &sendMessageWithoutContent, sizeof(SendMessageWithoutContent));    
 
     char* response = tcpClient->sendRequestToServer(requestBuffer);
@@ -324,7 +334,7 @@ std::string UserManager::sendSymmetricKey(const std::string& userName)
     if (!requestedClient.hasPublicKey)
         return "The public key of user with user name " + userName + " is missing";
 
-    RSAPublicWrapper rsaPublic(requestedClient.publicKey);
+    RSAPublicWrapper rsaPublic(requestedClient.publicKey, RSAPublicWrapper::KEYSIZE);
     std::string sendMessageResult;
     AESWrapper aes;
     std::string encryptedAes = rsaPublic.encrypt((const char*)aes.getKey(), AESWrapper::DEFAULT_KEYLENGTH);    
@@ -339,7 +349,7 @@ std::string UserManager::sendSymmetricKey(const std::string& userName)
     sendMessageWithoutContent.data.messageSize = (uint32_t)encryptedAes.size();
     sendMessageWithoutContent.data.messageType = (uint8_t)messageType::send_symmetric_key;
 
-    char* requestBuffer = new char[sizeof(SendMessageWithoutContent) + (uint32_t)encryptedAes.size()];
+    char requestBuffer[BUFFER_SIZE];
     memcpy(requestBuffer, &sendMessageWithoutContent, sizeof(SendMessageWithoutContent));
     strcpy_s(requestBuffer + sizeof(SendMessageWithoutContent), encryptedAes.size(), encryptedAes.c_str());
 
@@ -377,16 +387,17 @@ std::string UserManager::sendSymmetricKey(const std::string& userName)
 
 #pragma region Private Methods
 
-void UserManager::createRegisterUserRequestBuffer(char *clientRegisterRequseBuffer)
+void UserManager::createRegisterUserRequestBuffer(char *clientRegisterRequseBuffer, const std::string& userName)
 {
     ClientRegisterRequest clientRegisterRequest;
     clientRegisterRequest.data.header.version = VERSION;
     clientRegisterRequest.data.header.code = UserManager::requestCodeType::user_register;
     clientRegisterRequest.data.header.payloadSize = sizeof(ClientRegisterUserRequestPayload);
     rsaPrivateWrapper->getPublicKey(clientRegisterRequest.data.payload.publicKey, RSAPublicWrapper::KEYSIZE);
+    Logger::debug("Send register new user request, user name: " + userName + ", Public key: " + rsaPrivateWrapper->getPublicKey());
 
     //TODO Init with m.data.name = { 0 }
-    initMessage(clientRegisterRequest.data.payload.name, 255);
+    initMessage(clientRegisterRequest.data.payload.name, sizeof(clientRegisterRequest.data.payload.name));
     memcpy(clientRegisterRequest.data.payload.name, userName.c_str(), userName.length());
 
     memcpy(clientRegisterRequseBuffer, clientRegisterRequest.buffer, sizeof(ClientRegisterRequest));
@@ -395,6 +406,7 @@ void UserManager::createRegisterUserRequestBuffer(char *clientRegisterRequseBuff
 void UserManager::createNoPayloadRequestBuffer(char* noPayloadRequestBuffer, requestCodeType requestCode)
 {
     RequestNoPayload clientsListRequest;
+    clientsListRequest.data.header.clientId = clientId;
     clientsListRequest.data.header.version = VERSION;
     clientsListRequest.data.header.code = requestCode;
     clientsListRequest.data.header.payloadSize = EMPTY_PAYLOAD_SIZE;
@@ -468,12 +480,13 @@ std::string UserManager::addContactsFromServerToList(char* responseBuffer, uint3
     memcpy(serverContactsData, responseBuffer + sizeof(ServerResponseHeader), payloadSize);
 
     std::string contactsStr = "Contacts list:\n";
-
+    Logger::debug("Getting contacts list from the server:");
     for (int i = 0; i < serverContactsCount; i++)
     {
         Contact currentContact = Contact(serverContactsData[i].name, serverContactsData[i].clientId);
+        Logger::debug("User name: " + std::string(currentContact.userName) + ", Client Id: " + to_string(currentContact.clientId));
         contacts.insert(std::pair<boost::uuids::uuid, Contact>(currentContact.clientId, currentContact));
-        contactsStr += std::string(currentContact.userName);
+        contactsStr += std::string(currentContact.userName) + '\n';
     }
 
     delete[] serverContactsData;

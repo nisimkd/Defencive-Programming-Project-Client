@@ -25,6 +25,7 @@ private:
 	void displayMainMenuOptions();
 public:
 	ConsoleUI(const std::string&, const std::string&);
+	ConsoleUI(const std::string&, const std::string&, const std::string&, const std::string&, const std::string&);	
 	~ConsoleUI();
 	int run();
 };

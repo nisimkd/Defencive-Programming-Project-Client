@@ -9,6 +9,11 @@ ConsoleUI::ConsoleUI(const std::string& serverAddress, const std::string& server
     this->userManager = new UserManager(serverAddress, serverPort);
 }
 
+ConsoleUI::ConsoleUI(const std::string& serverAddress, const std::string& serverPort, const std::string& userName, const std::string& clientId, const std::string& privateKey)
+{
+    this->userManager = new UserManager(serverAddress, serverPort, userName, clientId, privateKey);
+}
+
 ConsoleUI::~ConsoleUI()
 {
     delete userManager;
@@ -17,6 +22,8 @@ ConsoleUI::~ConsoleUI()
 int ConsoleUI::run()
 {
     ConsoleUI::mainMenuOptions userSelection;
+
+
 
     do
     {

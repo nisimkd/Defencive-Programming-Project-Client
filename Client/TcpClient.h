@@ -4,7 +4,7 @@
 class TcpClient
 {
 //TODO Put it in better place
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 8096
 private:	
 	std::string serverAddress;
 	std::string serverPort;

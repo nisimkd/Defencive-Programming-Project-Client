@@ -190,7 +190,7 @@ private:
 
 	#pragma region Methods
 
-	void createRegisterUserRequestBuffer(char*);
+	void createRegisterUserRequestBuffer(char*, const std::string&);
 	void createNoPayloadRequestBuffer(char*, requestCodeType);
 	void createPublicKeyRequestBuffer(char*, boost::uuids::uuid);
 	bool isMyInfoFileExists();
@@ -207,6 +207,7 @@ public:
 	#pragma region Constructors and Destructors
 
 	UserManager(const std::string&, const std::string&);
+	UserManager(const std::string&, const std::string&, const std::string&, const std::string&, const std::string&);
 	~UserManager();
 
 	#pragma endregion	
