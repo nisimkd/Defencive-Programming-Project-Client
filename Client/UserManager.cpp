@@ -12,7 +12,7 @@ UserManager::UserManager(const std::string& serverAddress, const std::string& se
     this->tcpClient = new TcpClient(serverAddress, serverPort);
     this->clientId = boost::uuids::uuid();
     this->rsaPrivateWrapper = new RSAPrivateWrapper;    
-    this->contacts = std::map<boost::uuids::uuid, Contact>();
+    this->contacts = std::map<boost::uuids::uuid, Contact*>();
 }
 
 UserManager::UserManager(const std::string& serverAddress, const std::string& serverPort, const std::string& userName, const std::string& clientId, const std::string& privateKey)
@@ -21,7 +21,7 @@ UserManager::UserManager(const std::string& serverAddress, const std::string& se
     this->userName = userName;
     this->clientId = boost::lexical_cast<boost::uuids::uuid>(clientId);
     this->rsaPrivateWrapper = new RSAPrivateWrapper(Base64Wrapper::decode(privateKey));
-    this->contacts = std::map<boost::uuids::uuid, Contact>();
+    this->contacts = std::map<boost::uuids::uuid, Contact*>();
 }
 
 //TODO Delete contacts memory
@@ -156,9 +156,9 @@ std::string UserManager::requestPublicKey(const std::string& userName)
         else if (publicKeyRequestResponse.serverResponseHeader.code == serverResponseCodeType::get_public_key)
         {
             //TODO Handle client Id error
-            auto requestedContact = contacts.find(publicKeyRequestResponse.clientId);
-            memcpy(requestedContact->second.publicKey, publicKeyRequestResponse.publicKey, RSAPublicWrapper::KEYSIZE);
-            requestedContact->second.hasPublicKey = true;            
+            auto requestedContact = contacts.find(publicKeyRequestResponse.clientId)->second;
+            memcpy(requestedContact->publicKey, publicKeyRequestResponse.publicKey, RSAPublicWrapper::KEYSIZE);
+            requestedContact->hasPublicKey = true;            
             requestPublicKeyResult = "Get public key of user " + userName + " success\n";
         }
         else
@@ -217,26 +217,27 @@ std::string UserManager::sendMessage(const std::string& userName, const std::str
         return "User with user name " + userName + " not found";
 
     auto requestedClient = contacts.find(requestedClientId)->second;
-    if (!requestedClient.getHasSymmetricKey())
+    if (!requestedClient->getHasSymmetricKey())
         return "The symmetric key of user with user name " + userName + " is missing";
 
-    std::string sendMessageResult;
-    AESWrapper aes(AESWrapper::GenerateKey(requestedClient.symmetricKey, AESWrapper::DEFAULT_KEYLENGTH), AESWrapper::DEFAULT_KEYLENGTH);
-    std::string cipherMessage = aes.encrypt(message.c_str(), (unsigned int)message.size());
+    std::string sendMessageResult;    
+    std::string cipherMessage = requestedClient->aes->encrypt(message.c_str(), message.length());
+
+    uint32_t cipherMessageLength = cipherMessage.length();
 
     // Create request buffer
     SendMessageWithoutContent sendMessageWithoutContent;
     sendMessageWithoutContent.data.header.clientId = clientId;
     sendMessageWithoutContent.data.header.version = VERSION;
     sendMessageWithoutContent.data.header.code = requestCodeType::send_text_message;
-    sendMessageWithoutContent.data.header.payloadSize = sizeof(sendMessageWithoutContentData) + (uint32_t)cipherMessage.size();
+    sendMessageWithoutContent.data.header.payloadSize = sizeof(sendMessageWithoutContentData) + cipherMessageLength;
     sendMessageWithoutContent.data.clientId = requestedClientId;
-    sendMessageWithoutContent.data.messageSize = (uint32_t)cipherMessage.size();
+    sendMessageWithoutContent.data.messageSize = cipherMessageLength;
     sendMessageWithoutContent.data.messageType = (uint8_t)messageType::send_text_message;    
 
     char requestBuffer[BUFFER_SIZE];
     memcpy(requestBuffer, &sendMessageWithoutContent, sizeof(SendMessageWithoutContent));
-    strcpy_s(requestBuffer + sizeof(SendMessageWithoutContent), cipherMessage.size(), cipherMessage.c_str());    
+    memcpy(requestBuffer + sizeof(SendMessageWithoutContent), cipherMessage.c_str(), cipherMessage.size());
 
     char* response = tcpClient->sendRequestToServer(requestBuffer);
     if (response == NULL)
@@ -264,7 +265,6 @@ std::string UserManager::sendMessage(const std::string& userName, const std::str
         delete response;
     }
 
-    delete[] requestBuffer;
     return sendMessageResult;
 }
 
@@ -276,7 +276,7 @@ std::string UserManager::requestSymmetricKey(const std::string& userName)
         return "User with user name " + userName + " not found";
 
     auto requestedClient = contacts.find(requestedClientId)->second;
-    if (requestedClient.getHasSymmetricKey())
+    if (requestedClient->getHasSymmetricKey())
         return "The symmetric key of user with user name " + userName + " already exists";
 
     std::string sendMessageResult;
@@ -331,27 +331,33 @@ std::string UserManager::sendSymmetricKey(const std::string& userName)
         return "User with user name " + userName + " not found";
 
     auto requestedClient = contacts.find(requestedClientId)->second;
-    if (!requestedClient.hasPublicKey)
+    if (!requestedClient->hasPublicKey)
         return "The public key of user with user name " + userName + " is missing";
 
-    RSAPublicWrapper rsaPublic(requestedClient.publicKey, RSAPublicWrapper::KEYSIZE);
+    RSAPublicWrapper rsaPublic(requestedClient->publicKey, RSAPublicWrapper::KEYSIZE);
     std::string sendMessageResult;
-    AESWrapper aes;
-    std::string encryptedAes = rsaPublic.encrypt((const char*)aes.getKey(), AESWrapper::DEFAULT_KEYLENGTH);    
+
+    AESWrapper *aes = new AESWrapper();
+    requestedClient->aes = aes;
+    requestedClient->hasSymmetricKey = true;
+    
+    std::string encryptedAes = rsaPublic.encrypt((char*)aes->getKey(), AESWrapper::DEFAULT_KEYLENGTH);
+
+    uint32_t encryptedAesLength = encryptedAes.length();
 
     // Create request buffer
     SendMessageWithoutContent sendMessageWithoutContent;
     sendMessageWithoutContent.data.header.clientId = clientId;
     sendMessageWithoutContent.data.header.version = VERSION;
     sendMessageWithoutContent.data.header.code = requestCodeType::send_text_message;
-    sendMessageWithoutContent.data.header.payloadSize = sizeof(sendMessageWithoutContentData) + (uint32_t)encryptedAes.size();
+    sendMessageWithoutContent.data.header.payloadSize = sizeof(sendMessageWithoutContentData) + encryptedAesLength;
     sendMessageWithoutContent.data.clientId = requestedClientId;
-    sendMessageWithoutContent.data.messageSize = (uint32_t)encryptedAes.size();
+    sendMessageWithoutContent.data.messageSize = encryptedAesLength;
     sendMessageWithoutContent.data.messageType = (uint8_t)messageType::send_symmetric_key;
 
     char requestBuffer[BUFFER_SIZE];
     memcpy(requestBuffer, &sendMessageWithoutContent, sizeof(SendMessageWithoutContent));
-    strcpy_s(requestBuffer + sizeof(SendMessageWithoutContent), encryptedAes.size(), encryptedAes.c_str());
+    memcpy(requestBuffer + sizeof(SendMessageWithoutContent), encryptedAes.c_str(), encryptedAesLength);
 
     char* response = tcpClient->sendRequestToServer(requestBuffer);
     if (response == NULL)
@@ -378,8 +384,7 @@ std::string UserManager::sendSymmetricKey(const std::string& userName)
 
         delete response;
     }
-
-    delete[] requestBuffer;
+    
     return sendMessageResult;
 }
 
@@ -483,10 +488,10 @@ std::string UserManager::addContactsFromServerToList(char* responseBuffer, uint3
     Logger::debug("Getting contacts list from the server:");
     for (int i = 0; i < serverContactsCount; i++)
     {
-        Contact currentContact = Contact(serverContactsData[i].name, serverContactsData[i].clientId);
-        Logger::debug("User name: " + std::string(currentContact.userName) + ", Client Id: " + to_string(currentContact.clientId));
-        contacts.insert(std::pair<boost::uuids::uuid, Contact>(currentContact.clientId, currentContact));
-        contactsStr += std::string(currentContact.userName) + '\n';
+        Contact *currentContact = new Contact(serverContactsData[i].name, serverContactsData[i].clientId);
+        Logger::debug("User name: " + std::string(currentContact->userName) + ", Client Id: " + to_string(currentContact->clientId));
+        contacts.insert(std::pair<boost::uuids::uuid, Contact*>(currentContact->clientId, currentContact));
+        contactsStr += std::string(currentContact->userName) + '\n';
     }
 
     delete[] serverContactsData;
@@ -531,7 +536,7 @@ std::string UserManager::handleMessage(Message message)
     }
     else
     {
-        messageStr += contactIterator->second.userName + '\n';
+        messageStr += std::string(contactIterator->second->userName) + '\n';
     }
 
     messageStr += "Content:\n";
@@ -544,22 +549,23 @@ std::string UserManager::handleMessage(Message message)
     }
     case messageType::send_symmetric_key:
     {
-        unsigned char aesKey[AESWrapper::DEFAULT_KEYLENGTH];
-        strcpy_s((char*)aesKey, (unsigned int)message.getMessageContent().size(), rsaPrivateWrapper->decrypt(message.getMessageContent()).c_str());
-        contactIterator->second.setSymmetricKey(aesKey);
-        messageStr += "Symmetric key received\n";
+        unsigned char aesKey[AESWrapper::DEFAULT_KEYLENGTH];        
+        std::string aesKeyStr = rsaPrivateWrapper->decrypt(message.getMessageContent());        
+        std::copy(aesKeyStr.begin(), aesKeyStr.end(), aesKey);
+        contactIterator->second->aes = new AESWrapper(aesKey, AESWrapper::DEFAULT_KEYLENGTH);
+        contactIterator->second->hasSymmetricKey = true;
+        messageStr += "Symmetric key received\n";        
         break;
     }
     case messageType::send_text_message:
     {
-        if (!contactIterator->second.getHasSymmetricKey())
+        if (!contactIterator->second->getHasSymmetricKey())
         {
             messageStr += "Can't decrypt message\n";
         }
         else
-        {
-            AESWrapper aes(contactIterator->second.getSymmetricKey(), AESWrapper::DEFAULT_KEYLENGTH);
-            std::string messageContentDecrypt = aes.decrypt(message.getMessageContent().c_str(), (unsigned int) message.getMessageContent().size());
+        {            
+            std::string messageContentDecrypt = contactIterator->second->aes->decrypt(message.getMessageContent().c_str(), message.getMessageContent().length());
             messageStr += messageContentDecrypt + '\n';
         }
         break;
@@ -572,11 +578,11 @@ std::string UserManager::handleMessage(Message message)
 
 bool UserManager::getClientIdByUserName(const std::string& userName, boost::uuids::uuid &clientId)
 {
-    for (auto const& contact : contacts)
+    for (auto const& contactIterator : contacts)
     {
-        if (std::string(contact.second.userName).compare(userName) == 0)
+        if (std::string(contactIterator.second->userName).compare(userName) == 0)
         {
-            clientId = contact.second.clientId;
+            clientId = contactIterator.second->clientId;
             return true;
         }        
     }

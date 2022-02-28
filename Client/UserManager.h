@@ -184,7 +184,7 @@ private:
 	std::string userName;
 	boost::uuids::uuid clientId;
 	RSAPrivateWrapper* rsaPrivateWrapper;
-	std::map<boost::uuids::uuid, Contact> contacts;
+	std::map<boost::uuids::uuid, Contact*> contacts;
 
 	#pragma endregion
 

@@ -15,13 +15,13 @@ int main()
     const string SERVER_INFO_FILE_NAME = "server.info";
     const string CLIENT_INFO_FILE_NAME = "my.info";
 
-    Logger::initLogger(LOG_FILE_NAME);    
+    Logger::initLogger(LOG_FILE_NAME);
 
     string serverAddress;
     string serverPort;
 
     fstream serverInfoFile;
-    fstream myInfoFile;   
+    fstream myInfoFile;
     ConsoleUI* consoleUI;
 
     //TODO Create a function that load from file the server details
@@ -74,8 +74,8 @@ int main()
     else
     {
         consoleUI = new ConsoleUI(serverAddress, serverPort);
-    }    
-    
+    }
+
     int exit = consoleUI->run();
     delete consoleUI;
     return exit;

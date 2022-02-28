@@ -10,7 +10,7 @@ struct Contact
 	boost::uuids::uuid clientId;
 	char userName[USER_NAME_SIZE];
 	char publicKey[RSAPublicWrapper::KEYSIZE];
-	unsigned char symmetricKey[AESWrapper::DEFAULT_KEYLENGTH];		
+	AESWrapper *aes;
 	bool hasSymmetricKey = false;
 	bool hasPublicKey = false;
 	Contact(char name[USER_NAME_SIZE], boost::uuids::uuid id)
@@ -20,23 +20,12 @@ struct Contact
 	}
 	~Contact()
 	{
-
-	}
-
-	void setSymmetricKey(unsigned char* key)
-	{
-		memcpy(symmetricKey, key, AESWrapper::DEFAULT_KEYLENGTH);
-		hasSymmetricKey = true;
+		delete aes;
 	}
 
 	bool getHasSymmetricKey()
 	{
 		return hasSymmetricKey;
-	}
-
-	unsigned char* getSymmetricKey()
-	{
-		return symmetricKey;
 	}
 };
 
