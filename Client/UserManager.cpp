@@ -29,6 +29,11 @@ UserManager::~UserManager()
 {
     delete rsaPrivateWrapper;
     delete tcpClient;
+
+    for (auto const& contactIterator : contacts)
+    {
+        delete contactIterator.second;
+    }
 }
 
 #pragma endregion

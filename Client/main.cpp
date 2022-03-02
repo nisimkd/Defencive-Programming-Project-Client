@@ -43,7 +43,7 @@ int main()
     }
     else
     {
-        cout << "server.info file doesn't exist!";
+        cout << "server.info file doesn't exist!\n";
         system("pause");
         return 1;
     }

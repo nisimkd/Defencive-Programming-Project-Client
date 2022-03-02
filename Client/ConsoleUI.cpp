@@ -3,6 +3,8 @@
 #include "RSAWrapper.h"
 #include "Base64Wrapper.h"
 #include <fstream>
+#include<limits>
+#include<ios>
 
 ConsoleUI::ConsoleUI(const std::string& serverAddress, const std::string& serverPort)
 {
@@ -84,16 +86,18 @@ int ConsoleUI::run()
         }            
         case ConsoleUI::mainMenuOptions::send_text_message:
         {
+            std::string message;
+            std::string userName;
+
             system("cls");
 
             std::cout << "Please enter the user name of the user you want send the message: ";
-            std::string userName;
             std::cin >> userName;
 
-            std::cout << "Please enter the message: ";
-            std::string message;
-            std::cin >> message;
-
+            //clear buffer before getting the message text          
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "Please enter the message: ";                
+            std::getline(std::cin, message);
 
             std::string sendMessagesResult = userManager->sendMessage(userName, message);
             std::cout << sendMessagesResult << std::endl;
